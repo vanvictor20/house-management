@@ -10,6 +10,7 @@
 
     //require a connector
     require_once "functions/db.php";
+    require_once "functions/sms.php";
 
     //require the global file for errors
     require_once "functions/errors.php";
@@ -50,8 +51,7 @@
                             $balance=$amountExpected-$amountPaid;
 
                             //generate account balance
-                            $sqtenant="SELECT `account`,`tenant_name`,`phone_number` from `tenants` where `tenantID`='$tenantId'";
-                            $tenquer=mysqli_query($conn,$sqtenant);
+                            $tenquer=db_query($conn, "SELECT `account`,`tenant_name`,`phone_number` from `tenants` where `tenantID`=?", [$tenantId]);
                             $rec=mysqli_fetch_array($tenquer,MYSQLI_BOTH);
                             $account=$rec['account']; //the user account balance
                             $tnm=$rec['tenant_name']; //tenant name
@@ -74,27 +74,15 @@
                                 $account+=$amountPaid;
                             }
 
-                            //Step2: sql statements
-                            $sql_inv="UPDATE `invoices` set `amountDue`='$balance', `status`='$status' where `invoiceNumber`='$invoiceNumber'"; //invoice table
-
-                            $sql_ten="UPDATE `tenants` set `account`='$account' where `tenantID`='$tenantId'"; //update tenant account balance
-
-                            $sql_payment="INSERT INTO `payments`
-                                (`tenantID`, `invoiceNumber`, `expectedAmount`, `amountPaid`, `balance`, `mpesaCode`, `dateofPayment`, `comment`) 
-                                VALUES ('$tenantId','$invoiceNumber','$amountExpected','$amountPaid','$balance','$mpesaCode','$paymentDate','$comment')";//inserts a new payment
-
-                            $sql_transactions="INSERT into `transactions` (`actor`,`time`,`description`)
-                            VALUES ('Admin ($username)', '$timesnap','$username added payment of $amountPaid for $tnm, under invoice ID: $invoiceNumber')";
-
-                            //Step 3: Running an atomic transactionto effect the three tables
+                            //Step 2: update the three tables as an atomic transaction
                                 $mysqli->autocommit(FALSE);
 
-                                $state=true;
-
-                                $mysqli->query($sql_inv)?null: $state=false;
-                                $mysqli->query($sql_ten)?null: $state=false;
-                                $mysqli->query($sql_payment)?null: $state=false;
-                                $mysqli->query($sql_transactions)?null: $state=false;
+                                $state = db_query($mysqli, "UPDATE `invoices` set `amountDue`=?, `status`=? where `invoiceNumber`=?", [$balance, $status, $invoiceNumber])
+                                    && db_query($mysqli, "UPDATE `tenants` set `account`=? where `tenantID`=?", [$account, $tenantId])
+                                    && db_query($mysqli, "INSERT INTO `payments` (`tenantID`, `invoiceNumber`, `expectedAmount`, `amountPaid`, `balance`, `mpesaCode`, `dateofPayment`, `comment`) VALUES (?,?,?,?,?,?,?,?)",
+                                        [$tenantId, $invoiceNumber, $amountExpected, $amountPaid, $balance, $mpesaCode, $paymentDate, $comment])
+                                    && db_query($mysqli, "INSERT into `transactions` (`actor`,`time`,`description`) VALUES (?,?,?)",
+                                        ["Admin ($username)", $timesnap, "$username added payment of $amountPaid for $tnm, under invoice ID: $invoiceNumber"]);
 
 
                             if ($state) 
@@ -103,43 +91,8 @@
                                 $mysqli -> commit();
 
                                      //send an SMS
-                                $user="REDACTED_USERNAME";
-                                $Key="REDACTED_MOVESMS_API_KEY";
-                                $senderId="SMARTLINK";
-                                $tophonenumber=$phone;
                                 $finalmessage="Greetings ".$firstName.", This is a confirmation that your rent payment of KES. ".$amountPaid." has been received and updated. Remaining balance to pay is KES. ".$balance.". Thank you.";
-
-                                $url="https://sms.movesms.co.ke/api/compose?";
-                                $postData = array(
-                                'username' => $user,
-                                'api_key' => $Key,
-                                'sender' => $senderId,
-                                'to' => $tophonenumber,
-                                'message' => $finalmessage,
-                                'msgtype' => 5,
-                                'dlr' => 0,
-                                );
-
-                                $ch = curl_init();
-                                curl_setopt_array($ch, array(
-                                CURLOPT_URL => $url,
-                                CURLOPT_RETURNTRANSFER => true,
-                                CURLOPT_POST => true,
-                                CURLOPT_POSTFIELDS => $postData
-
-                                ));
-
-                                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-                                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-
-                                $output = curl_exec($ch);
-
-                                if (curl_errno($ch)) {
-
-                                $output = curl_error($ch);
-                                }
-
-                                curl_close($ch);
+                                send_sms($phone, $finalmessage);
                                 //end of sending SMS
 
                                 header("location:payments.php?state=8");

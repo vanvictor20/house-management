@@ -19,10 +19,11 @@
 
         if (isset($_GET['id'])) {
         $inboxid = $_GET['id'];
-        $sql="SELECT * FROM contacts WHERE id='$inboxid'";
+        $query = db_query($connection, "SELECT * FROM contacts WHERE id=?", [$inboxid]);
       }
       else {
         header('Location:inbox.php');
+        exit;
       }
 
     ?>
@@ -170,7 +171,6 @@
                             <div class="row">
 
                                 <?php 
-                                 $query = mysqli_query($connection, $sql);
                                         while ($row = mysqli_fetch_assoc($query)) {
 
                                 echo

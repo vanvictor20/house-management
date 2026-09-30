@@ -38,18 +38,12 @@
 
                         $timesnap=date('Y-m-d : H:i:s');
 
-                                        //insert the data
-                                        $sq="INSERT into `houses` 
-                            (`house_name`,`number_of_rooms`,`rent_amount`,`location`,`num_of_bedrooms`,`house_status`) values('$hname','$numOfRooms','$rent','$location','$numOfbRooms','$status');";
-
-                             $sql_transactions="INSERT into `transactions` (`actor`,`time`,`description`)
-                            VALUES ('Admin ($username)', '$timesnap','$username added a new house ($hname) with $numOfRooms rentable units, and $numOfbRooms bedrooms per unit located in $location')";
-
                             $mysqli->autocommit(FALSE);
-                            $state=true;
 
-                            $mysqli->query($sq)?null: $state=false;
-                            $mysqli->query($sql_transactions)?null: $state=false;
+                            $state = db_query($mysqli, "INSERT into `houses` (`house_name`,`number_of_rooms`,`rent_amount`,`location`,`num_of_bedrooms`,`house_status`) values (?,?,?,?,?,?)",
+                                    [$hname, $numOfRooms, $rent, $location, $numOfbRooms, $status])
+                                && db_query($mysqli, "INSERT into `transactions` (`actor`,`time`,`description`) VALUES (?,?,?)",
+                                    ["Admin ($username)", $timesnap, "$username added a new house ($hname) with $numOfRooms rentable units, and $numOfbRooms bedrooms per unit located in $location"]);
 
                             if ($state) {
                                 $mysqli->commit();

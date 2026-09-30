@@ -162,22 +162,6 @@
                             <div class="row">
                                 <div class="col-sm-12 col-xs-12">
                                     <form action="functions/settings.php" method="post">
-                                        <!-- <div class="form-group">
-                                            <label for="exampleInputuname">User Name</label>
-                                            <div class="input-group">
-                                                <div class="input-group-addon"><i class="ti-user"></i></div>
-                                                <input type="text" class="form-control" id="exampleInputuname" placeholder="Username"> </div>
-                                        </div> -->
-                                      <!--   <div class="form-group">
-                                            <label for="exampleInputEmail1">Email address</label>
-                                            <div class="input-group">
-                                                <div class="input-group-addon"><i class="ti-email"></i></div>
-                                                <input type="email" name="email" class="form-control" id="exampleInputEmail1" placeholder="Enter email" required=""> </div>
-                                        </div> -->
-
-                                        <!-- EMAIL HIDDEN -->
-                                        <input type="hidden" name="email" value="<?php echo $_SESSION['email']; ?>" />
-                                        <!-- EMAIL HIDDEN -->
 
                                         <div class="form-group">
                                             <label for="exampleInputpwd1">New Password</label>

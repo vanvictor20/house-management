@@ -1,0 +1,5 @@
+# Local credentials (copy admin/functions/config.example.php)
+admin/functions/config.php
+.DS_Store
+.idea/
+.vscode/

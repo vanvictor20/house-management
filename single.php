@@ -1,15 +1,12 @@
 <?php
 
-    require_once "Company_admin/functions/db.php";
+    require_once "admin/functions/db.php";
 
         if (isset($_GET['id'])) {
         $postid = $_GET['id'];
 
-        $sql = "SELECT * FROM posts WHERE id='$postid'";
-        $query = mysqli_query($connection, $sql);
-
-        $sql2 = "SELECT * FROM comments WHERE blogid=$postid";
-        $query2 = mysqli_query($connection, $sql2);
+        $query = db_query($connection, "SELECT * FROM posts WHERE id=?", [$postid]);
+        $query2 = db_query($connection, "SELECT * FROM comments WHERE blogid=?", [$postid]);
         
       }
 

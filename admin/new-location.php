@@ -29,10 +29,7 @@
                        {
                         $location=is_username($_POST['hname']);
 
-                        $sq="INSERT into `locations` (`location_name`,`geo_id`) values ('$location','undefined')";
-
-                        
-                        if ($mysqli -> query($sq)) {
+                        if (db_query($mysqli, "INSERT into `locations` (`location_name`,`geo_id`) values (?,'undefined')", [$location])) {
                             //success
                             header("location:new-location.php?state=10");
                         }else
@@ -45,10 +42,7 @@
 
     //request to delete
         if (isset($_GET['del'])) {
-            $locid=$_GET['del'];
-
-            //delete
-            mysqli_query($conn, "DELETE FROM `locations` where `id`=$locid");
+            db_query($conn, "DELETE FROM `locations` where `id`=?", [$_GET['del']]);
         }
 
    

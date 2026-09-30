@@ -1,55 +1,19 @@
-<?php 
+<?php
 
 require_once "db.php";
+require_once "auth.php";
 
-
-  // session_start();
-
-  // // If session variable is not set it will redirect to login page
-
-  // if(!isset($_SESSION['email']) || empty($_SESSION['email'])){
-  //     header('Location:../login.php');
-  //   exit;
-
-  // }
-
-  // $email = $_SESSION['email'];
-  $author = $_POST['author'];
-  $title = $_POST['title'];
+if (isset($_POST["submit"])) {
+  $author = uncrack($_POST['author']);
+  $title = uncrack($_POST['title']);
   $content = $_POST['content'];
 
-  
-
-  if (isset($_POST["submit"])) {
-    // Add task to DB
-    $sql = "INSERT INTO posts(author, title, content)
-    VALUES (?,?,?)";
-
-    $stmt = $db->prepare($sql);
-
-
-    try {
-      $stmt->execute([$author, $title, $content]);
-      header('Location:../posts.php?posted');
-
-      }
-
-     catch (Exception $e) {
-        $e->getMessage();
-        echo "Error";
-    }
+  try {
+    $db->prepare("INSERT INTO posts(author, title, content) VALUES (?,?,?)")
+      ->execute([$author, $title, $content]);
+    header('Location:../posts.php?posted');
+  } catch (Exception $e) {
+    error_log($e->getMessage());
+    echo "Error";
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-?>
+}

@@ -1,55 +1,31 @@
-<?php 
+<?php
 
- 
 require_once "db.php";
+require_once "auth.php";
 
 if (isset($_POST["deleteTenant"])) {
-  //collecting data
-	$tenid = $_POST["tenID"];
-  $numberOfRooms=$_POST["num"];
-  $roomId=$_POST['hsID'];
-  $hsState=$_POST["state"];
+  $tenid = $_POST["tenID"];
+  $numberOfRooms = (int) $_POST["num"];
+  $roomId = $_POST['hsID'];
+  $hsState = $_POST["state"];
 
-  if ($numberOfRooms==0) {
-    #set house status to 'Vacant' since there will be a free renting unit
-    $hsState='Vacant';
+  if ($numberOfRooms == 0) {
+    // a renting unit is being freed, so the house becomes vacant
+    $hsState = 'Vacant';
   }
-  //increment number of rooms by 1
-  $numberOfRooms+=1;
+  $numberOfRooms += 1;
 
-  //A query to update houses
-   $sq_houses="UPDATE `houses` SET `number_of_rooms`='$numberOfRooms', `house_status`='$hsState' WHERE `houseID`='$roomId'";
-   //A query to remove tenant
-  $sq_tenants="DELETE FROM `tenants` WHERE `tenants`.`tenantID`='$tenid'";
+  $mysqli->autocommit(false);
+  $status = db_query($mysqli, "DELETE FROM `tenants` WHERE `tenantID`=?", [$tenid])
+    && db_query($mysqli, "UPDATE `houses` SET `number_of_rooms`=?, `house_status`=? WHERE `houseID`=?", [$numberOfRooms, $hsState, $roomId]);
 
-  $mysqli ->autocommit(FALSE);
-  $status =true;
-
-      //EXECUTE QUERRIES
-  $mysqli->query($sq_tenants)?null: $status=false;
-  $mysqli->query($sq_houses)?null: $status=false;
-	
-
-if ($status) {
-                  #successful, commit changes
-                  $mysqli ->commit();
-
-                        //head to index and report as an error state.
-                   header('Location:../tenants.php?deleted');
-              }
-            else
-              {
-                      #rollback changes
-                    $mysqli -> rollback();
-                    //return back to page with error state
-                    header('Location:../tenants.php?del_error');
-              }
-
+  if ($status) {
+    $mysqli->commit();
+    header('Location:../tenants.php?deleted');
+  } else {
+    $mysqli->rollback();
+    header('Location:../tenants.php?del_error');
+  }
+} else {
+  header('Location:../tenants.php?del_error');
 }
-else {
-	header('Location:../tenants.php?del_error');
-}
-
-	
-
-?>

@@ -2,6 +2,7 @@
 
     ob_start();
     require_once "functions/db.php";
+    session_start();
 
     // If session variable is not set it will redirect to login page
 

@@ -1,18 +1,9 @@
 <?php
 
 require_once "functions/db.php";
+require_once "functions/auth.php";
 
-	if (isset($_GET["act"])) {
-		//collect data
-		$data=uncrack($_GET["q"]);
-		$option_type=$_GET["act"];
-
-		//for deleting notifications
-		if ($option_type=='notifications') {
-			$sq="UPDATE `transactions` SET `seen`='YES' where `id`='$data'";
-			mysqli_query($conn,$sq);
-		}
-	}
-
-
-?>
+if (isset($_GET["act"]) && $_GET["act"] == 'notifications') {
+	// mark a notification as seen
+	db_query($conn, "UPDATE `transactions` SET `seen`='YES' where `id`=?", [$_GET["q"]]);
+}

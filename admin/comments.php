@@ -204,8 +204,7 @@
                                                 while ($row = mysqli_fetch_array($query))
                                                         {
                                                             $blogid = $row["blogid"];
-                                                            $sql2 = "SELECT * FROM posts WHERE id='$blogid'";
-                                                              $query2 = mysqli_query($connection, $sql2);
+                                                            $query2 = db_query($connection, "SELECT * FROM posts WHERE id=?", [$blogid]);
 
                                                               while ($row2 = mysqli_fetch_assoc($query2)) {
 

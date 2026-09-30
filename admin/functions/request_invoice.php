@@ -1,30 +1,20 @@
 <?php 
-/*
-    THIS IS A STANDARD INPUT TEXTBOX ON NEW-PAYMENT.PHP
-  '<div class="form-group">
-        <label for="ddate">Invoice Due Date: </label>
-      <div class="input-group">
-          <div class="input-group-addon"><i class="fa fa-user"></i></div>
-          <input type="text" name="ddate" class="form-control" id="ddate" value="5" readonly=""> 
-      </div>
-    </div>'
-*/
  
 require_once "db.php";
+require_once "auth.php";
 
 if (isset($_GET["q"])) {
- //our user has requested an invoice. get invoice ID, then get related data from viewInvoice
-  $invoiceId=$_GET['q'];
-  
-  $sql_invoice="SELECT * from `invoicesView` where `invoiceNumber`='$invoiceId'";
-  $invoice_query=mysqli_query($conn,$sql_invoice);
+  // an invoice was picked on new-payment.php: return its details
+  $invoice_query = db_query($conn, "SELECT * from `invoicesView` where `invoiceNumber`=?", [$_GET['q']]);
+  $record = $invoice_query ? mysqli_fetch_array($invoice_query, MYSQLI_BOTH) : null;
+  if (!$record) {
+    exit;
+  }
 
-  $record=mysqli_fetch_array($invoice_query,MYSQLI_BOTH);
-
-  $tenantId=$record['tenantID'];
-  $invoicedate=$record['dateOfInvoice'];
-  $dueDate=$record['dateDue'];
-  $amountDue=$record['amountDue'];
+  $tenantId = htmlspecialchars($record['tenantID']);
+  $invoicedate = htmlspecialchars($record['dateOfInvoice']);
+  $dueDate = htmlspecialchars($record['dateDue']);
+  $amountDue = htmlspecialchars($record['amountDue']);
 
   echo "
   <label>Invoice Date: <i>$invoicedate</i> </label><br>

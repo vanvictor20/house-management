@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: [ "8.1", "8.2", "8.3" ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+      - name: Lint PHP files
+        run: find . -name '*.php' -not -path './plugins/*' -print0 | xargs -0 -n1 php -l
+
+  smoke:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: Company
+        ports: [ "3306:3306" ]
+        options: --health-cmd="mysqladmin ping" --health-interval=5s --health-retries=10
+    env:
+      DB_HOST: 127.0.0.1
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: Company
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mysqli, pdo_mysql
+      - name: Import schema
+        run: mysql -h127.0.0.1 -uroot -proot Company < database/Company.sql
+      - name: Pages render and admin handlers require login
+        run: |
+          php -S 127.0.0.1:8000 >/tmp/php.log 2>&1 &
+          sleep 2
+          for p in index.php blog.php about.php contact.php "single.php?id=1" admin/login.php; do
+            body=$(curl -sf "http://127.0.0.1:8000/$p") || { echo "::error::$p failed"; exit 1; }
+            if echo "$body" | grep -qE "(Fatal error|Warning|Deprecated)(</b>)?: "; then echo "::error::$p has PHP errors"; exit 1; fi
+          done
+          loc=$(curl -s -o /dev/null -w "%{redirect_url}" -X POST -d id=1 http://127.0.0.1:8000/admin/functions/del_admin.php)
+          [ "$loc" = "http://127.0.0.1:8000/admin/login.php" ] || { echo "::error::unauthenticated handler not blocked"; exit 1; }
+          ! grep -E "Fatal|Warning|Deprecated" /tmp/php.log

@@ -2,18 +2,17 @@
 
  
 require_once "db.php";
+require_once "auth.php";
 
 if (isset($_POST["id"])) {
 
 	$id = $_POST["id"];
 
-	$sql = "DELETE posts, comments FROM posts INNER JOIN comments WHERE posts.id=comments.blogid and posts.id=?";
-
-$stmt = $db->prepare($sql);
-
-
     try {
-      $stmt->execute([$id]);
+      $db->beginTransaction();
+      $db->prepare("DELETE FROM comments WHERE blogid=?")->execute([$id]);
+      $db->prepare("DELETE FROM posts WHERE id=?")->execute([$id]);
+      $db->commit();
       header('Location:../posts.php?deleted');
 
       }
