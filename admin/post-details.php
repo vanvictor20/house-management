@@ -170,13 +170,10 @@
 
                                 <?php 
 
-                                    $sql="SELECT * FROM posts WHERE id='$postid'";
-
-                                     $query = mysqli_query($connection, $sql);
+                                     $query = db_query($connection, "SELECT * FROM posts WHERE id=?", [$postid]);
                                         while ($row = mysqli_fetch_assoc($query)) {
                                             $postid = $row["id"];
-                                                    $sql2 = "SELECT * FROM comments WHERE blogid=$postid";
-                                                    $query2 = mysqli_query($connection, $sql2);
+                                                    $query2 = db_query($connection, "SELECT * FROM comments WHERE blogid=?", [$postid]);
                                             echo 
                               
                                 '<div class="col-lg-12 col-md-9 col-sm-8 col-xs-12 mail_listing">

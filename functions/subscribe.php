@@ -1,55 +1,23 @@
-
-
 <?php
 
-require_once "../Company_admin/functions/db.php";
-
-$email = $_POST['email'];
+require_once "../admin/functions/db.php";
 
 if (isset($_POST['submit'])) {
+  $email = is_email($_POST['email']);
 
-	 // Check if email aready exists
+  $existing = $db->prepare("SELECT id FROM subscribers WHERE email = ?");
+  $existing->execute([$email]);
 
-      $sql1 = "SELECT id FROM subscribers WHERE email = ?";
-      $stmt1 = $db->prepare($sql1);
-      $stmt1->execute([$email]);
+  if ($existing->fetch()) {
+    header("Location:../index.php?fail");
+    exit;
+  }
 
-
-      if ($stmt1->rowCount()>0) {
-          // email already EXISTS
-            header ("Location:../index.php?fail");
-            // die();
-      }
-
-    else
-    {
-    
-	
-	$sql = "INSERT INTO subscribers(email)
-    VALUES (?)";
-
-    $stmt = $db->prepare($sql);
-
-
-    try {
-      $stmt->execute([$email]);
-      header('Location:../index.php?subscribed');
-      // echo "DONE!!";
-
-      }
-
-     catch (Exception $e) {
-        $e->getMessage();
-        echo "Error";
-    }	
-
+  try {
+    $db->prepare("INSERT INTO subscribers(email) VALUES (?)")->execute([$email]);
+    header('Location:../index.php?subscribed');
+  } catch (Exception $e) {
+    error_log($e->getMessage());
+    echo "Error";
+  }
 }
-
-}
-
-
-
-
-
-
-?>

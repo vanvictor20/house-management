@@ -250,8 +250,7 @@
                                                 <?php
                                                     $month=date('Y-m'); 
                                                     $total=0;
-                                                    $sq_pay="SELECT `amountPaid`, `dateofPayment` from `payments` where `dateofPayment` like '%$month%'";
-                                                    $rec=mysqli_query($conn,$sq_pay);
+                                                    $rec=db_query($conn, "SELECT `amountPaid`, `dateofPayment` from `payments` where `dateofPayment` like ?", ["%$month%"]);
                                                     while ($row=mysqli_fetch_array($rec,MYSQLI_BOTH)) {
                                                         $total+=$row['amountPaid'];
                                                     }
@@ -489,8 +488,7 @@
 
                                     while ($row2 = mysqli_fetch_array($query_comments)) {
                                     $blogid = $row2["blogid"];
-                                       $sql2 = "SELECT * FROM posts WHERE id='$blogid'";
-                                            $query2 = mysqli_query($connection, $sql2);
+                                       $query2 = db_query($connection, "SELECT * FROM posts WHERE id=?", [$blogid]);
 
                                        while (($row3 = mysqli_fetch_assoc($query2)) and ($counter < $max)) {
                                         
@@ -562,8 +560,7 @@
                                                 while (($row = mysqli_fetch_array($query_posts)) and ($counter < $max) )
                                                 {
                                                     $postid = $row["id"];
-                                                    $sql2 = "SELECT * FROM comments WHERE blogid=$postid";
-                                                    $query2 = mysqli_query($connection, $sql2);
+                                                    $query2 = db_query($connection, "SELECT * FROM comments WHERE blogid=?", [$postid]);
 
                                               echo '
                                         <tr>

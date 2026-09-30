@@ -9,6 +9,7 @@
 
     //require a connector
     require_once "functions/db.php";
+    require_once "functions/sms.php";
 
     //require the global file for errors
     require_once "functions/errors.php";
@@ -61,8 +62,7 @@
 
                         
 
-                        $sq1="SELECT `house_name`,`rent_amount` from `houses` where `houseID`='$houseid'";
-                        $rec_house=mysqli_query($conn,$sq1);
+                        $rec_house=db_query($conn, "SELECT `house_name`,`rent_amount` from `houses` where `houseID`=?", [$houseid]);
                         $rec_item=mysqli_fetch_array($rec_house,MYSQLI_BOTH);
 
                         $hsname=$rec_item['house_name'];
@@ -79,30 +79,16 @@
 
                          //inserting the data as an atomic transaction. 
 
-                        //start with preparing SQL statements
-                        
-                        //A query to add tenant
-                        $sq_tenants="INSERT into `tenants` 
-                            (`houseNumber`,`tenant_name`,`email`,`ID_number`,`profession`,`phone_number`,`dateAdmitted`) values('$houseid','$tname','$temail','$idnum','$prof','$phone','$dateAdmitted');";
-
-                        //A query to update houses
-                        $sq_houses="UPDATE `houses` SET `number_of_rooms`='$noOfRooms', `house_status`='$houseStatus' WHERE `houseID`='$houseid'";
-
-                        // report this transaction
-                         $sql_transactions="INSERT into `transactions` (`actor`,`time`,`description`)
-                            VALUES ('Admin ($username)', '$timesnap','$username admitted a new tenant ($tname) at $timesnap')";
-
                         //BEGIN AN ATOMIC TRANASACTION 
 
                         //Start with disabling autocommit
                         $mysqli -> autocommit(FALSE);
-                        //set a status flag. we shall flag it to 'false' if any of the transactions fails
-                        $status =true;
-
-                        //EXECUTE QUERRIES
-                        $mysqli->query($sq_tenants)?null: $status=false;
-                        $mysqli->query($sq_houses)?null: $status=false;
-                        $mysqli->query($sql_transactions)?null: $status=false;
+                        //EXECUTE QUERIES; $status is false if any of them fails
+                        $status = db_query($mysqli, "INSERT into `tenants` (`houseNumber`,`tenant_name`,`email`,`ID_number`,`profession`,`phone_number`,`dateAdmitted`) values (?,?,?,?,?,?,?)",
+                                [$houseid, $tname, $temail, $idnum, $prof, $phone, $dateAdmitted])
+                            && db_query($mysqli, "UPDATE `houses` SET `number_of_rooms`=?, `house_status`=? WHERE `houseID`=?", [$noOfRooms, $houseStatus, $houseid])
+                            && db_query($mysqli, "INSERT into `transactions` (`actor`,`time`,`description`) VALUES (?,?,?)",
+                                ["Admin ($username)", $timesnap, "$username admitted a new tenant ($tname) at $timesnap"]);
 
 
                             if ($status) {
@@ -111,43 +97,8 @@
 
                                 //send an SMS to the new tenant
                                 
-                                $user="REDACTED_USERNAME";
-                                $Key="REDACTED_MOVESMS_API_KEY";
-                                $senderId="SMARTLINK";
-                                $tophonenumber=$phone;
                                 $finalmessage="Hello ".$firstName.", You're welcome to Nyumbani Homes. You were admitted to ".$hsname." with rent amount of KES. ".$rentAmount." per month.";
-
-                                $url="https://sms.movesms.co.ke/api/compose?";
-                                $postData = array(
-                                'username' => $user,
-                                'api_key' => $Key,
-                                'sender' => $senderId,
-                                'to' => $tophonenumber,
-                                'message' => $finalmessage,
-                                'msgtype' => 5,
-                                'dlr' => 0,
-                                );
-
-                                $ch = curl_init();
-                                curl_setopt_array($ch, array(
-                                CURLOPT_URL => $url,
-                                CURLOPT_RETURNTRANSFER => true,
-                                CURLOPT_POST => true,
-                                CURLOPT_POSTFIELDS => $postData
-
-                                ));
-
-                                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-                                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-
-                                $output = curl_exec($ch);
-
-                                if (curl_errno($ch)) {
-
-                                $output = curl_error($ch);
-                                }
-
-                                curl_close($ch);
+                                send_sms($phone, $finalmessage);
                                 
 
 

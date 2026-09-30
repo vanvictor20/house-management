@@ -26,8 +26,6 @@
 
     $email = $_SESSION['email'];
 
-   /* $sql = "SELECT `tenantID`,`houseNumber`,`tenant_name`,`email`,`ID_number`,`profession`,`phone_number`,`dateAdmitted`,`agreement_file`, `house_name`,`number_of_rooms`,`house_status`,`rent_amount`,`houseID` FROM `tenants`LEFT join `houses` ON `tenants`.`houseNumber`=`houses`.`houseID`";
-   */
    $sql="select * from `tenantsView`";
 
     $query = mysqli_query($connection, $sql);
@@ -145,8 +143,6 @@
                                                 }
 
                                         while ($row = @mysqli_fetch_array($query)) {
-                                            // $noOfRooms = $row["number_of_rooms"];
-                                             //$hsStatus=$row['house_status'];
 
                                     echo '
                                     

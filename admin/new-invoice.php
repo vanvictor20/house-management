@@ -12,6 +12,7 @@
 
     //require a connector
     require_once "functions/db.php";
+    require_once "functions/sms.php";
 
     //require the global file for errors
     require_once "functions/errors.php";
@@ -49,8 +50,7 @@
                             $istatus='unpaid'; //invoice status
 
                             //get the tenant's name and Phone number for SMS
-                            $sqt="SELECT `tenant_name`,`phone_number`,`account` from `tenants` where `tenantID`='$tenantId'";
-                            $queryt=mysqli_query($conn,$sqt);
+                            $queryt=db_query($conn, "SELECT `tenant_name`,`phone_number`,`account` from `tenants` where `tenantID`=?", [$tenantId]);
                             $ten_record=mysqli_fetch_array($queryt,MYSQLI_BOTH);
                             $tenantName=$ten_record['tenant_name'];
                             $firstName=substr($tenantName,0,strpos($tenantName,' '));
@@ -76,77 +76,26 @@
                                 $account-=$rentAmount;
                             }
 
-                            //SQL statement to insert to new invoices
-                            $sqInvoice="INSERT into `invoices`
-                            (`invoiceNumber`,`tenantID`,`dateOfInvoice`,`dateDue`,`amountDue`,`comment`,`status`)
-                                VALUES
-                            ('$invoiceid','$tenantId','$invoiceDate','$invoiceDueDate','$rentAmount','$comment','$istatus')";
-
-                            //SQL to update tenant account
-                            $sq_account="UPDATE `tenants` set `account`= '$account' where 
-                            `tenantID`='$tenantId'";
-
-                            //report this transaction
-                                $sql_transactions="INSERT into `transactions` (`actor`,`time`,`description`)
-                            VALUES ('Admin ($username)', '$timesnap','$username added a new rental invoice ($invoiceid) for tenant ($tenantName) at $timesnap.')";
-
-                            //SQL to check if an invoice for the current month for that tenant already exists
-                            $sqcheck="SELECT * from `invoices` where `tenantID`='$tenantId' and `dateOfInvoice` like '%$invoiceMonth%'";
-                            $query_verify=mysqli_query($conn,$sqcheck);
+                            //check if an invoice for the current month for that tenant already exists
+                            $query_verify=db_query($conn, "SELECT * from `invoices` where `tenantID`=? and `dateOfInvoice` like ?", [$tenantId, "%$invoiceMonth%"]);
 
                             if (mysqli_num_rows($query_verify)<1) {
                                 //this is a new invoice, proceed
 
                                 $mysqli->autocommit(FALSE);
-                                 $status =true;
-
-                                //EXECUTE QUERRIES
-                                $mysqli->query($sqInvoice)?null: $status=false;
-                               $mysqli->query($sq_account)?null: $status=false;
-                                $mysqli->query($sql_transactions)?null: $status=false;
+                                $status = db_query($mysqli, "INSERT into `invoices` (`invoiceNumber`,`tenantID`,`dateOfInvoice`,`dateDue`,`amountDue`,`comment`,`status`) VALUES (?,?,?,?,?,?,?)",
+                                        [$invoiceid, $tenantId, $invoiceDate, $invoiceDueDate, $rentAmount, $comment, $istatus])
+                                    && db_query($mysqli, "UPDATE `tenants` set `account`=? where `tenantID`=?", [$account, $tenantId])
+                                    && db_query($mysqli, "INSERT into `transactions` (`actor`,`time`,`description`) VALUES (?,?,?)",
+                                        ["Admin ($username)", $timesnap, "$username added a new rental invoice ($invoiceid) for tenant ($tenantName) at $timesnap."]);
 
                                 if ($status) {
                                     //commit
                                     $mysqli->commit();
 
                                     //send an SMS
-                                $user="REDACTED_USERNAME";
-                                $Key="REDACTED_MOVESMS_API_KEY";
-                                $senderId="SMARTLINK";
-                                $tophonenumber=$phone;
-                                $finalmessage="Greetings ".$firstName.", This is a reminder that you're supposed to pay this month's rent of KES.".$rentAmount." by date ".$invoiceDueDate.". You can make the payment by MPESA to +254700000000.";
-
-                                $url="https://sms.movesms.co.ke/api/compose?";
-                                $postData = array(
-                                'username' => $user,
-                                'api_key' => $Key,
-                                'sender' => $senderId,
-                                'to' => $tophonenumber,
-                                'message' => $finalmessage,
-                                'msgtype' => 5,
-                                'dlr' => 0,
-                                );
-
-                                $ch = curl_init();
-                                curl_setopt_array($ch, array(
-                                CURLOPT_URL => $url,
-                                CURLOPT_RETURNTRANSFER => true,
-                                CURLOPT_POST => true,
-                                CURLOPT_POSTFIELDS => $postData
-
-                                ));
-
-                                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-                                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-
-                                $output = curl_exec($ch);
-
-                                if (curl_errno($ch)) {
-
-                                $output = curl_error($ch);
-                                }
-
-                                curl_close($ch);
+                                $finalmessage="Greetings ".$firstName.", This is a reminder that you're supposed to pay this month's rent of KES.".$rentAmount." by date ".$invoiceDueDate.". You can make the payment by MPESA to ".$config['mpesa_number'].".";
+                                send_sms($phone, $finalmessage);
                                 //end of sending SMS
 
 

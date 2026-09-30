@@ -99,19 +99,17 @@
 
                                   
 
+                                  session_regenerate_id(true);
+
+                                  
+
                                   $_SESSION['email'] = $email;
 
 
-                                  // $sql = "SELECT department FROM employees WHERE email='$email'" ;
-                                  //$statement = mysqli_query($conn, $sql);
 
                                     header("Location: index.php");
 
-                                // Close statement
 
-                                //mysqli_stmt_close($statement);
-
-                                //header("location: sales");
 
                               } else{
 
