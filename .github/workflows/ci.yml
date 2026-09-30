@@ -44,6 +44,7 @@ jobs:
         with:
           php-version: "8.3"
           extensions: mysqli, pdo_mysql
+          coverage: none
       - name: Import schema
         run: mysql -h127.0.0.1 -uroot -proot Company < database/Company.sql
       - name: Pages render and admin handlers require login
